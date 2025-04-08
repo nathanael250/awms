@@ -1,0 +1,21 @@
+{% extends "shared/base.html" %}
+{% block content %}
+<div class="min-h-screen flex items-center justify-center -mt-32">
+    <div class="bg-white p-8 rounded-lg shadow-md w-96">
+        <h2 class="text-2xl font-bold mb-6 text-center text-blue-600">Admin Login</h2>
+        <form method="POST" action="{{ url_for('admin_login') }}" class="space-y-4">
+            <div>
+                <label class="block text-gray-700">Username</label>
+                <input type="text" name="username" class="w-full border rounded-lg p-2" required>
+            </div>
+            <div>
+                <label class="block text-gray-700">Password</label>
+                <input type="password" name="password" class="w-full border rounded-lg p-2" required>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                Login
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

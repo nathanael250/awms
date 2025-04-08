@@ -1,0 +1,92 @@
+{% extends 'shared/base.html' %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+            <h2 class="text-2xl font-bold text-center mb-6">Payment Confirmation</h2>
+            
+            <div id="payment-status" class="text-center mb-6">
+                <div class="animate-pulse flex flex-col items-center">
+                    <div class="rounded-full bg-blue-400 h-16 w-16 flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <p class="text-gray-600">Processing payment...</p>
+                </div>
+            </div>
+            
+            <div class="bg-gray-100 rounded-lg p-4 mb-6">
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-600">Amount:</span>
+                    <span class="font-semibold">RWF {{ payment.amount }}</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-600">Reference:</span>
+                    <span class="font-semibold">{{ payment.transaction_ref[:8] }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Date:</span>
+                    <span class="font-semibold">{{ payment.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                </div>
+            </div>
+            
+            <div id="success-message" class="hidden bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6">
+                <p>Payment completed successfully!</p>
+            </div>
+            
+            <div id="error-message" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+                <p>Payment failed. Please try again.</p>
+            </div>
+            
+            <div class="flex justify-center">
+                <a href="{{ url_for('user_dashboard') }}" id="dashboard-btn" class="hidden bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
+                    Return to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Check payment status every 2 seconds
+    const checkPaymentStatus = () => {
+        fetch('/api/check-payment-status/{{ payment.id }}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Show success message
+                    document.getElementById('payment-status').classList.add('hidden');
+                    document.getElementById('success-message').classList.remove('hidden');
+                    document.getElementById('dashboard-btn').classList.remove('hidden');
+                    // Stop checking
+                    clearInterval(statusInterval);
+                } else if (data.status === 'failed') {
+                    // Show error message
+                    document.getElementById('payment-status').classList.add('hidden');
+                    document.getElementById('error-message').classList.remove('hidden');
+                    document.getElementById('dashboard-btn').classList.remove('hidden');
+                    // Stop checking
+                    clearInterval(statusInterval);
+                }
+            })
+            .catch(error => {
+                console.error('Error checking payment status:', error);
+            });
+    };
+    
+    // Check immediately and then every 2 seconds
+    checkPaymentStatus();
+    const statusInterval = setInterval(checkPaymentStatus, 2000);
+    
+    // Stop checking after 30 seconds regardless
+    setTimeout(() => {
+        clearInterval(statusInterval);
+        // If still showing processing, show the dashboard button
+        if (!document.getElementById('payment-status').classList.contains('hidden')) {
+            document.getElementById('dashboard-btn').classList.remove('hidden');
+        }
+    }, 30000);
+</script>
+{% endblock %}

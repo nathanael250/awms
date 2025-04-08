@@ -1,0 +1,128 @@
+{% extends "shared/base.html" %}
+
+{% block page_title %}System Alerts{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">System Alerts</h2>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="mb-4 p-4 rounded-md {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Alert Statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-red-50 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold text-red-800 mb-2">Critical Alerts</h3>
+                <p class="text-3xl font-bold text-red-600">{{ alerts|selectattr('severity', 'equalto', 'Critical')|list|length }}</p>
+            </div>
+            <div class="bg-yellow-50 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold text-yellow-800 mb-2">Warning Alerts</h3>
+                <p class="text-3xl font-bold text-yellow-600">{{ alerts|selectattr('severity', 'equalto', 'Warning')|list|length }}</p>
+            </div>
+            <div class="bg-blue-50 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold text-blue-800 mb-2">Total Alerts</h3>
+                <p class="text-3xl font-bold text-blue-600">{{ alerts|length }}</p>
+            </div>
+        </div>
+
+        <!-- Alerts Table -->
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Severity
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Title
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Details
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Time
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for alert in alerts %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if alert.severity == 'Critical' %}
+                                    bg-red-100 text-red-800
+                                {% else %}
+                                    bg-yellow-100 text-yellow-800
+                                {% endif %}">
+                                {{ alert.severity }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {{ alert.title }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ alert.details }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ alert.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <button onclick="dismissAlert('{{ loop.index0 }}')" class="text-blue-600 hover:text-blue-900">
+                                Dismiss
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if not alerts %}
+        <div class="text-center py-8">
+            <p class="text-gray-500">No active alerts</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function dismissAlert(alertIndex) {
+    if (confirm('Are you sure you want to dismiss this alert?')) {
+        fetch(`/admin/alerts/${alertIndex}/dismiss`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error dismissing alert: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while dismissing the alert');
+        });
+    }
+}
+</script>
+{% endblock %} 

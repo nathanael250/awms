@@ -1,0 +1,19 @@
+<div class="balance-container">
+    <h2>Current Balance</h2>
+    <p>Remaining Time: <span id="remaining-time">Loading...</span></p>
+    <p>Last Payment: <span id="last-payment">Loading...</span></p>
+</div>
+
+<script>
+function updateBalance() {
+    fetch('/api/balance/12')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('remaining-time').textContent = data.remaining_time + ' seconds';
+            document.getElementById('last-payment').textContent = new Date(data.last_payment).toLocaleString();
+        });
+}
+
+setInterval(updateBalance, 5000);
+updateBalance();
+</script>

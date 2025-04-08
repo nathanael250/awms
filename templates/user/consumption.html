@@ -1,0 +1,558 @@
+{% extends "shared/base.html" %}
+
+{% block page_title %}Water Consumption{% endblock %}
+
+{% block content %}
+<style>
+  /* Add fixed height constraints to chart containers */
+  .chart-container {
+    position: relative;
+    height: 250px;
+    width: 100%;
+  }
+
+  /* Ensure the table doesn't push content down too far */
+  .table-container {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  /* Animation for water decreasing */
+  @keyframes pulse-red {
+    0% { color: #ef4444; }
+    50% { color: #f87171; }
+    100% { color: #ef4444; }
+  }
+  
+  .animate-pulse-red {
+    animation: pulse-red 2s infinite;
+  }
+</style>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Remaining Water Card -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Water Remaining</h2>
+        <div class="flex items-center justify-between">
+            <div id="remaining-water" class="text-4xl font-bold text-blue-600">
+                {% if remaining_cubic_meters is not none and remaining_cubic_meters == remaining_cubic_meters %}
+                    {{ "%.3f"|format(remaining_cubic_meters) }} m³
+                {% else %}
+                    0.000 m³
+                {% endif %}
+            </div>
+            <div class="text-gray-500">
+                Available Volume
+            </div>
+        </div>
+        
+        <!-- Progress bar for remaining water -->
+        <div class="mt-3 w-full bg-gray-200 rounded-full h-3">
+            <div id="water-progress-bar" class="bg-blue-600 h-3 rounded-full transition-all duration-500" style="width: 100%"></div>
+        </div>
+        
+        <!-- Real-time water flow indicator (only shows when valve is open) -->
+        <div id="water-flow-indicator" class="mt-2 hidden">
+            <span class="text-sm text-red-500 animate-pulse-red">
+                <svg class="inline-block w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
+                </svg>
+                Water flowing
+            </span>
+        </div>
+        
+        
+    </div>
+
+    <!-- Today's Usage Statistics Card -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Today's Usage</h2>
+        <div class="chart-container">
+            <canvas id="todayUsageChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Usage Summary Card -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Usage Summary</h2>
+        <div class="space-y-4">
+            <div>
+                <div class="text-sm text-gray-600">Average Daily Usage:</div>
+                <div class="text-2xl font-semibold">{{ "%.3f"|format(avg_daily_usage) }} m³</div>
+            </div>
+            <div>
+                <div class="text-sm text-gray-600">Estimated Monthly Usage:</div>
+                <div class="text-2xl font-semibold">{{ "%.3f"|format(estimated_monthly_usage) }} m³</div>
+            </div>
+            <div>
+                <div class="text-sm text-gray-600">Estimated Monthly Cost:</div>
+                <div class="text-2xl font-semibold text-green-600">RWF {{ "%.2f"|format(estimated_monthly_cost) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Session Card (only visible when valve is open) -->
+    <div id="current-session-card" class="hidden col-span-1 md:col-span-3 bg-blue-50 rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4 text-blue-800">Current Water Session</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded shadow-sm">
+                <h3 class="font-medium text-blue-600 mb-2">Duration</h3>
+                <p id="session-duration" class="text-2xl font-semibold">00:00:00</p>
+            </div>
+            <div class="bg-white p-4 rounded shadow-sm">
+                <h3 class="font-medium text-blue-600 mb-2">Current Usage</h3>
+                <p id="current-usage" class="text-2xl font-semibold">0.000 m³</p>
+            </div>
+            <div class="bg-white p-4 rounded shadow-sm">
+                <h3 class="font-medium text-blue-600 mb-2">Estimated Cost</h3>
+                <p id="current-cost" class="text-2xl font-semibold text-green-600">RWF 0.00</p>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Water Conservation Tips -->
+    <div class="col-span-1 md:col-span-3 bg-blue-50 rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4 text-blue-800">Water Conservation Tips</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded shadow-sm">
+                <h3 class="font-medium text-blue-600 mb-2">Fix Leaky Faucets</h3>
+                <p class="text-sm text-gray-600">A dripping faucet can waste up to 20 gallons of water per day. Check and fix any leaks promptly.</p>
+            </div>
+            <div class="bg-white p-4 rounded shadow-sm">
+                <h3 class="font-medium text-blue-600 mb-2">Shorter Showers</h3>
+                <p class="text-sm text-gray-600">Reducing your shower time by just 2 minutes can save up to 10 gallons of water per shower.</p>
+            </div>
+            <div class="bg-white p-4 rounded shadow-sm">
+                <h3 class="font-medium text-blue-600 mb-2">Full Loads Only</h3>
+                <p class="text-sm text-gray-600">Only run washing machines and dishwashers with full loads to maximize water efficiency.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Today's Usage Chart - Limit to the last 10 data points if there are too many
+const todayData = {{ usage_data|map(attribute='amount')|list|tojson }};
+const todayLabels = {{ usage_data|map(attribute='timestamp')|map('strftime', '%H:%M')|list|tojson }};
+
+// If we have more than 10 data points, only show the last 10
+const maxDataPoints = 10;
+let displayData = todayData;
+let displayLabels = todayLabels;
+
+if (todayData.length > maxDataPoints) {
+    displayData = todayData.slice(-maxDataPoints);
+    displayLabels = todayLabels.slice(-maxDataPoints);
+}
+
+// Today's Usage Chart
+const todayCtx = document.getElementById('todayUsageChart').getContext('2d');
+const todayUsageChart = new Chart(todayCtx, {
+    type: 'line',
+    data: {
+        labels: displayLabels,
+        datasets: [{
+            label: 'Water Usage (m³)',
+            data: displayData,
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            pointHoverRadius: 5
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2,  // Set a fixed aspect ratio
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Cubic Meters (m³)'
+                },
+                ticks: {
+                    maxTicksLimit: 6
+                }
+            },
+            x: {
+                title: {
+                    display: true,
+                    text: 'Time'
+                },
+                ticks: {
+                    maxTicksLimit: 8,
+                    maxRotation: 45,
+                    minRotation: 45
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false // Hide legend to save space
+            }
+        }
+    }
+});
+
+// Monthly Trend Chart
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+const monthlyChart = new Chart(monthlyCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ monthly_trend|map(attribute='month')|list|tojson }},
+        datasets: [{
+            label: 'Monthly Water Usage (m³)',
+            data: {{ monthly_trend|map(attribute='usage')|list|tojson }},
+            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+            borderColor: 'rgba(16, 185, 129, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 2.5,  // Set a fixed aspect ratio
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Cubic Meters (m³)'
+                },
+                ticks: {
+                    maxTicksLimit: 6
+                }
+            },
+            x: {
+                ticks: {
+                    maxRotation: 45,
+                    minRotation: 45
+                }
+            }
+        }
+    }
+});
+
+// Daily Usage Chart (Last 7 Days)
+// Ensure we have exactly 7 days of data
+const dailyLabels = {{ daily_usage|map(attribute='date')|list|tojson }};
+
+const dailyData = {{ daily_usage|map(attribute='total_usage')|list|tojson }};
+
+// Get the last 7 days of data or pad with zeros if less than 7 days
+let last7DaysLabels = dailyLabels.slice(-7);
+let last7DaysData = dailyData.slice(-7);
+
+// If we have less than 7 days, pad with empty days
+if (last7DaysLabels.length < 7) {
+    const today = new Date();
+    for (let i = last7DaysLabels.length; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - (7 - i));
+        last7DaysLabels.unshift(date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+        last7DaysData.unshift(0);
+    }
+}
+
+const dailyCtx = document.getElementById('dailyUsageChart').getContext('2d');
+const dailyUsageChart = new Chart(dailyCtx, {
+    type: 'bar',
+    data: {
+        labels: last7DaysLabels,
+        datasets: [{
+            label: 'Daily Water Usage (m³)',
+            data: last7DaysData,
+            backgroundColor: 'rgba(79, 70, 229, 0.6)',
+            borderColor: 'rgba(79, 70, 229, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 3,  // Set a fixed aspect ratio
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Cubic Meters (m³)'
+                },
+                ticks: {
+                    maxTicksLimit: 6
+                }
+            },
+            x: {
+                ticks: {
+                    maxRotation: 45,
+                    minRotation: 45
+                }
+            }
+        }
+    }
+});
+
+// Real-time water balance tracking
+let initialWaterBalance = {{ remaining_cubic_meters }};
+let sessionStartTime = null;
+let currentUsage = 0;
+let valveStatus = 'closed';
+
+// Function to update water balance in real-time
+function updateWaterBalance() {
+    // Only poll if valve is open or if we haven't checked in a while
+    if (valveStatus === 'open' || !sessionStartTime) {
+        fetch('/api/get-water-balance/{{ current_user.id }}')
+            .then(response => response.json())
+            .then(data => {
+                // Update the remaining water display
+                const remainingWaterElement = document.getElementById('remaining-water');
+                const waterProgressBar = document.getElementById('water-progress-bar');
+                const waterFlowIndicator = document.getElementById('water-flow-indicator');
+                const currentSessionCard = document.getElementById('current-session-card');
+                const daysRemainingElement = document.getElementById('days-remaining');
+                
+                if (remainingWaterElement) {
+                    // Ensure we have a valid number
+                    const remainingMeters = parseFloat(data.remaining_cubic_meters);
+                    // Use the initial balance if we get an invalid number
+                    const formattedValue = isNaN(remainingMeters) ? parseFloat(initialWaterBalance).toFixed(3) : remainingMeters.toFixed(3);
+                    remainingWaterElement.textContent = `${formattedValue} m³`;
+                    
+                    // Update color based on remaining amount
+                    const displayValue = isNaN(remainingMeters) ? parseFloat(initialWaterBalance) : remainingMeters;
+                    if (displayValue <= 0.5) {
+                        remainingWaterElement.classList.remove('text-blue-600', 'text-yellow-600');
+                        remainingWaterElement.classList.add('text-red-600');
+                    } else if (displayValue <= 1) {
+                        remainingWaterElement.classList.remove('text-blue-600', 'text-red-600');
+                        remainingWaterElement.classList.add('text-yellow-600');
+                    } else {
+                        remainingWaterElement.classList.remove('text-red-600', 'text-yellow-600');
+                        remainingWaterElement.classList.add('text-blue-600');
+                    }
+                }
+                
+                // Update progress bar
+                if (waterProgressBar) {
+                    const remainingMeters = parseFloat(data.remaining_cubic_meters);
+                    const initialBalance = parseFloat(initialWaterBalance);
+                    
+                    // Use initial balance if we get an invalid number
+                    const displayRemaining = isNaN(remainingMeters) ? initialBalance : remainingMeters;
+                    
+                    // Ensure we have valid numbers for the calculation
+                    if (!isNaN(displayRemaining) && !isNaN(initialBalance) && initialBalance > 0) {
+                        const percentRemaining = (displayRemaining / initialBalance) * 100;
+                        waterProgressBar.style.width = `${Math.max(0, Math.min(100, percentRemaining))}%`;
+                        
+                        // Change color based on remaining percentage
+                        if (percentRemaining <= 25) {
+                            waterProgressBar.classList.remove('bg-blue-600', 'bg-yellow-500');
+                            waterProgressBar.classList.add('bg-red-500');
+                        } else if (percentRemaining <= 50) {
+                            waterProgressBar.classList.remove('bg-blue-600', 'bg-red-500');
+                            waterProgressBar.classList.add('bg-yellow-500');
+                        } else {
+                            waterProgressBar.classList.remove('bg-yellow-500', 'bg-red-500');
+                            waterProgressBar.classList.add('bg-blue-600');
+                        }
+                    } else {
+                        // Default to 100% if we can't calculate properly
+                        waterProgressBar.style.width = '100%';
+                        waterProgressBar.classList.remove('bg-yellow-500', 'bg-red-500');
+                        waterProgressBar.classList.add('bg-blue-600');
+                    }
+                }
+                
+                // Update days remaining
+                if (daysRemainingElement) {
+                    const remainingMeters = parseFloat(data.remaining_cubic_meters);
+                    const avgUsage = parseFloat({{ avg_daily_usage }});
+                    
+                    // Use initial balance if we get an invalid number
+                    const displayRemaining = isNaN(remainingMeters) ? parseFloat(initialWaterBalance) : remainingMeters;
+                    
+                    // Only calculate if we have valid numbers and average usage is greater than 0
+                    if (!isNaN(displayRemaining) && !isNaN(avgUsage) && avgUsage > 0) {
+                        const daysLeft = (displayRemaining / avgUsage).toFixed(1);
+                        daysRemainingElement.textContent = daysLeft;
+                    } else {
+                        daysRemainingElement.textContent = 'N/A';
+                    }
+                }
+                
+                // Check if valve status has changed
+                if (data.valve_status !== valveStatus) {
+                    valveStatus = data.valve_status;
+                    
+                    if (valveStatus === 'open') {
+                        // Valve was just opened
+                        sessionStartTime = new Date();
+                        currentUsage = 0;
+                        
+                        // Show water flow indicator and current session card
+                        if (waterFlowIndicator) waterFlowIndicator.classList.remove('hidden');
+                        if (currentSessionCard) currentSessionCard.classList.remove('hidden');
+                    } else {
+                        // Valve was just closed
+                        sessionStartTime = null;
+                        
+                        // Hide water flow indicator and current session card
+                        if (waterFlowIndicator) waterFlowIndicator.classList.add('hidden');
+                        if (currentSessionCard) currentSessionCard.classList.add('hidden');
+                    }
+                }
+                
+                // If valve is open, update current usage display
+                if (valveStatus === 'open') {
+                    const sessionDurationElement = document.getElementById('session-duration');
+                    const currentUsageElement = document.getElementById('current-usage');
+                    const currentCostElement = document.getElementById('current-cost');
+                    
+                    // Update current usage from API
+                    currentUsage = data.current_usage;
+                    
+                    // Update session duration
+                    if (sessionDurationElement && sessionStartTime) {
+                        const now = new Date();
+                        const elapsedSeconds = Math.floor((now - sessionStartTime) / 1000);
+                        
+                        // Format time as HH:MM:SS
+                        const hours = Math.floor(elapsedSeconds / 3600).toString().padStart(2, '0');
+                        const minutes = Math.floor((elapsedSeconds % 3600) / 60).toString().padStart(2, '0');
+                        const seconds = (elapsedSeconds % 60).toString().padStart(2, '0');
+                        
+                        sessionDurationElement.textContent = `${hours}:${minutes}:${seconds}`;
+                    }
+                    
+                    // Update current usage
+                    if (currentUsageElement) {
+                        currentUsageElement.textContent = `${currentUsage.toFixed(3)} m³`;
+                    }
+                    
+                    // Update current cost (assuming 1000 RWF per cubic meter)
+                    if (currentCostElement) {
+                        const cost = currentUsage * 1000;
+                        currentCostElement.textContent = `RWF ${cost.toFixed(2)}`;
+                    }
+                }
+                
+                // Add new usage to today's chart if significant change
+                if (currentUsage > 0.001 && todayUsageChart) {
+                    // Only add a new data point if it's significantly different from the last one
+                    const lastDataPoint = todayUsageChart.data.datasets[0].data[todayUsageChart.data.datasets[0].data.length - 1];
+                    
+                    if (!lastDataPoint || Math.abs(currentUsage - lastDataPoint) > 0.01) {
+                        // Add current time to labels
+                        const now = new Date();
+                        const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        
+                        // Add new data point
+                        todayUsageChart.data.labels.push(timeString);
+                        todayUsageChart.data.datasets[0].data.push(currentUsage);
+                        
+                        // Remove oldest data point if we have too many
+                        if (todayUsageChart.data.labels.length > maxDataPoints) {
+                            todayUsageChart.data.labels.shift();
+                            todayUsageChart.data.datasets[0].data.shift();
+                        }
+                        
+                        // Update chart
+                        todayUsageChart.update();
+                    }
+                }
+                
+                // Update usage history table with new data if available
+                if (data.latest_usage && data.latest_timestamp) {
+                    const usageHistoryTable = document.getElementById('usage-history-table');
+                    
+                    // Check if this is a new record not already in the table
+                    let isNewRecord = true;
+                    const rows = usageHistoryTable.querySelectorAll('tr');
+                    
+                    for (const row of rows) {
+                        const cells = row.querySelectorAll('td');
+                        if (cells.length > 0 && cells[0].textContent.includes(new Date(data.latest_timestamp).toLocaleDateString())) {
+                            isNewRecord = false;
+                            break;
+                        }
+                    }
+                    
+                    // If it's a new record, add it to the top of the table
+                    if (isNewRecord) {
+                        const newRow = document.createElement('tr');
+                        
+                        const timestamp = new Date(data.latest_timestamp);
+                        const formattedTimestamp = timestamp.toLocaleString('en-US', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        
+                        const formattedUsage = parseFloat(data.latest_usage).toFixed(3);
+                        const cost = data.latest_usage * 1000;
+                        
+                        newRow.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                ${formattedTimestamp}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                ${formattedUsage} m³
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                ${cost.toFixed(2)}
+                            </td>
+                        `;
+                        
+                        // Add to the top of the table
+                        if (usageHistoryTable.firstChild) {
+                            usageHistoryTable.insertBefore(newRow, usageHistoryTable.firstChild);
+                        } else {
+                            usageHistoryTable.appendChild(newRow);
+                        }
+                        
+                        // Remove the last row if there are more than 10
+                        if (usageHistoryTable.children.length > 10) {
+                            usageHistoryTable.removeChild(usageHistoryTable.lastChild);
+                        }
+                    }
+                }
+            })
+            .catch(error => console.error('Error updating water balance:', error));
+    }
+}
+
+// Update water balance every 10 seconds when valve is closed, every 2 seconds when open
+let pollInterval = 10000; // Default to 10 seconds
+
+function startPolling() {
+    // Clear any existing interval
+    if (window.pollingInterval) {
+        clearInterval(window.pollingInterval);
+    }
+    
+    // Set new interval based on valve status
+    pollInterval = valveStatus === 'open' ? 2000 : 10000;
+    window.pollingInterval = setInterval(updateWaterBalance, pollInterval);
+}
+
+// Start polling
+startPolling();
+
+// Initial update
+updateWaterBalance();
+
+
+
+</script>
+{% endblock %}
+

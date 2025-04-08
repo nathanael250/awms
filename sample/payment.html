@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Water Payment</title>
+    <style>
+        .payment-form {
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="payment-form">
+        <h2>Water Payment</h2>
+        <form method="POST" action="/user/payment">
+            <div class="form-group">
+                <label for="user_id">User ID:</label>
+                <input type="text" id="user_id" name="user_id" required>
+            </div>
+            <div class="form-group">
+                <label for="amount">Amount (in currency):</label>
+                <input type="number" id="amount" name="amount" step="0.01" required>
+            </div>
+            <button type="submit">Make Payment</button>
+        </form>
+    </div>
+
+    <div class="balance-container">
+        <h2>Current Balance</h2>
+        <p>Remaining Time: <span id="remaining-time">Loading...</span></p>
+        <p>Last Payment: <span id="last-payment">Loading...</span></p>
+    </div>
+
+    <p>Valve Status: <strong id="valve-status">Loading...</strong></p>
+    <button id="openValve">Open Valve</button>
+    <button id="closeValve">Close Valve</button>
+
+    <script>
+        document.getElementById("openValve").addEventListener("click", function () {
+            fetch('/api/control-valve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: "12", action: "open" })
+            }).then(response => response.json()).then(data => alert(data.message));
+        });
+
+        document.getElementById("closeValve").addEventListener("click", function () {
+            fetch('/api/control-valve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: "12", action: "close" })
+            }).then(response => response.json()).then(data => alert(data.message));
+        });
+    </script>
+
+    <script>
+        function updateBalance() {
+            fetch('/api/balance/12')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('remaining-time').textContent = data.remaining_time + ' seconds';
+                    document.getElementById('last-payment').textContent = new Date(data.last_payment).toLocaleString();
+                });
+        }
+
+        setInterval(updateBalance, 5000);
+        updateBalance();
+    </script>
+</body>
+
+</html>

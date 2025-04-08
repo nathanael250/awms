@@ -1,0 +1,157 @@
+{% extends "shared/base.html" %}
+
+{% block page_title %}Borrow Water{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="mb-4 p-4 rounded-md {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Water Loan Service</h2>
+            
+            {% if active_loan %}
+            <div class="bg-blue-50 p-6 rounded-lg mb-6">
+                <h3 class="text-xl font-semibold text-blue-800 mb-2">You have an active loan</h3>
+                <p class="text-gray-700 mb-2">Borrowed amount: <span class="font-semibold">{{ active_loan.amount }} cubic meters</span></p>
+                <p class="text-gray-700 mb-2">Borrowed on: <span class="font-semibold">{{ active_loan.borrowed_at|timeago }}</span></p>
+                <p class="text-gray-700 mb-4">This loan will be automatically repaid with your next payment.</p>
+                
+                <div class="bg-yellow-50 p-4 rounded-md border border-yellow-200">
+                    <p class="text-yellow-700">
+                        <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                            </path>
+                        </svg>
+                        You can only have one active loan at a time.
+                    </p>
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-gray-50 p-6 rounded-lg mb-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">Borrow Water</h3>
+                <p class="text-gray-700 mb-4">
+                    Need water but don't have enough credit? You can borrow up to <span class="font-semibold">2 cubic meters (2000 RWF)</span> 
+                    of water now and pay later with your next payment.
+                </p>
+                
+                <div class="bg-blue-50 p-4 rounded-md border border-blue-200 mb-6">
+                    <p class="text-blue-700">
+                        <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                            </path>
+                        </svg>
+                        Enter the amount you want to borrow in cubic meters. 1 cubic meter = 1000 RWF
+                    </p>
+                </div>
+                
+                <form action="{{ url_for('borrow_water') }}" method="post" class="mt-4">
+                    <div class="mb-4">
+                        <label for="amount" class="block text-gray-700 text-sm font-bold mb-2">Water volume to Borrow (cubic meters)</label>
+                        <div class="relative">
+                            <input type="number" id="amount" name="amount" step="0.1" min="0.1" max="2" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Enter water volume (max 2 cubic meters)">
+                            <div class="absolute right-3 top-2 text-gray-500">m³</div>
+                        </div>
+                        <p class="mt-1 text-sm text-gray-600">Water volume amount: 2 cubic meters (2000 RWF)</p>
+                    </div>
+                    
+                    <div class="flex items-center mb-4">
+                        <input type="checkbox" id="terms" name="terms" required class="mr-2">
+                        <label for="terms" class="text-gray-700">
+                            I understand that this borrowed water will be automatically deducted from my next payment before any remaining amount is added to my water balance.
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md transition duration-200">
+                        Borrow Water Now
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+            
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">How Water Loans Work</h3>
+                <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                    <li>You can borrow up to 2 cubic meters (2000 RWF) of water.</li>
+                    <li>The borrowed water is immediately available for use.</li>
+                    <li>You can only have one active loan at a time.</li>
+                    <li>When you make a payment, it will first be used to repay your loan.</li>
+                    <li>Only after your loan is fully repaid will any remaining payment amount be added to your water balance.</li>
+                    <li>If your next payment is insufficient to cover the loan, the remaining balance will be carried forward.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    
+    {% if loan_history %}
+    <div class="mt-8 bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Loan History</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Borrowed Date
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Amount
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Repaid Date
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for loan in loan_history %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ loan.borrowed_at.strftime('%Y-%m-%d %H:%M') }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ loan.amount }} cubic meters
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if loan.status == 'active' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    Active
+                                </span>
+                                {% else %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    Repaid
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {% if loan.repaid_at %}
+                                {{ loan.repaid_at.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

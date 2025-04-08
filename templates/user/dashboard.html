@@ -1,0 +1,117 @@
+{% extends "shared/base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- User Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-gray-500 text-sm mb-2">Today's Usage</h3>
+            <p class="text-3xl font-bold text-blue-600">{{ today_usage|round(1) }} L</p>
+            <p class="text-sm text-gray-500 mt-2">
+                {% if usage_change > 0 %}
+                    <span class="text-red-500">↑ {{ usage_change }}%</span>
+                {% else %}
+                    <span class="text-green-500">↓ {{ usage_change|abs }}%</span>
+                {% endif %}
+                from yesterday
+            </p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-gray-500 text-sm mb-2">Current Bill</h3>
+            <p class="text-3xl font-bold text-green-600">RWF {{ current_bill.amount|round(2) if current_bill else 0 }}</p>
+            <p class="text-sm text-gray-500 mt-2">Due {{ current_bill.timestamp.strftime('%b %d, %Y') if current_bill else 'N/A' }}</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-gray-500 text-sm mb-2">Counter Status</h3>
+            <p class="text-3xl font-bold text-emerald-600">Active</p>
+            <p class="text-sm text-gray-500 mt-2">Counter ID: {{ current_user.counter_id }}</p>
+        </div>
+    </div>
+
+    <!-- Usage Graph -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Water Usage History</h2>
+            <div class="text-sm text-gray-500">Last 7 days</div>
+        </div>
+        <canvas id="usageChart" height="200"></canvas>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Recent Activity</h2>
+            <!-- <a href="#" class="text-blue-600 hover:text-blue-800 text-sm">View All</a> -->
+        </div>
+        
+        <div class="space-y-4">
+            {% for usage in recent_usages %}
+            <div class="flex justify-between items-center border-b pb-4">
+                <div>
+                    <p class="font-medium">Water Usage</p>
+                    <p class="text-sm text-gray-500">{{ usage.usage_amount|round(1) }}L consumed</p>
+                </div>
+                <span class="text-sm text-gray-500">{{ usage.timestamp.strftime('%b %d, %H:%M') }}</span>
+            </div>
+            {% endfor %}
+            
+            {% for payment in recent_payments %}
+            <div class="flex justify-between items-center border-b pb-4">
+                <div>
+                    <p class="font-medium">Payment {{ payment.status|title }}</p>
+                    <p class="text-sm text-gray-500">RWF {{ payment.amount|round(2) }}</p>
+                </div>
+                <span class="text-sm text-gray-500">{{ payment.timestamp.strftime('%b %d, %H:%M') }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% block extra_scripts %}
+<script>
+    const ctx = document.getElementById('usageChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels|tojson }},
+            datasets: [{
+                label: 'Daily Water Usage (L)',
+                data: {{ weekly_usage|tojson }},
+                borderColor: 'rgb(59, 130, 246)',
+                tension: 0.4,
+                fill: true,
+                backgroundColor: 'rgba(59, 130, 246, 0.1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.parsed.y.toFixed(1)}L`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value + 'L';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,131 @@
+
+{% extends "shared/isp_base.html" %}
+{% block page_title %}ISP Recharge{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="mb-4 p-4 rounded-md {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Water Recharge</h2>
+                <img src="{{ url_for('static', filename='images/mtn-logo.png') }}" alt="MTN Logo" class="w-[100px]">
+            </div>
+
+            <form action="{{ url_for('isp_recharge') }}" method="POST" class="space-y-6">
+                <!-- User Search -->
+                <div class="relative">
+                    <label for="user_search" class="block text-sm font-medium text-gray-700 mb-2">Search User</label>
+                    <div class="relative">
+                        <input type="text" id="user_search" name="user_search" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                               placeholder="Search by name, phone, or ID card..."
+                               autocomplete="off">
+                        <div id="search_results" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg hidden">
+                            <!-- Search results will be populated here -->
+                        </div>
+                    </div>
+                    <input type="hidden" id="user_id" name="user_id" required>
+                </div>
+
+                <!-- Amount Input -->
+                <div>
+                    <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">Amount (RWF)</label>
+                    <div class="relative">
+                        <input type="number" id="amount" name="amount" required min="1000" step="1000"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                               placeholder="Enter amount">
+                        <div class="absolute right-3 top-2 text-gray-500">RWF</div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" 
+                        class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-md transition duration-200">
+                    Process Recharge
+                </button>
+            </form>
+
+            <!-- Footer Note -->
+            <div class="mt-6 text-center text-sm text-gray-500">
+                Powered by MTN MoMo
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_scripts %}
+<script>
+let searchTimeout;
+
+document.getElementById('user_search').addEventListener('input', function(e) {
+    const query = e.target.value.trim();
+    const resultsDiv = document.getElementById('search_results');
+    
+    // Clear previous timeout
+    clearTimeout(searchTimeout);
+    
+    if (query.length < 2) {
+        resultsDiv.classList.add('hidden');
+        return;
+    }
+    
+    // Set new timeout to avoid too many requests
+    searchTimeout = setTimeout(() => {
+        fetch(`/api/search-users?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(users => {
+                resultsDiv.innerHTML = '';
+                if (users.length > 0) {
+                    users.forEach(user => {
+                        const div = document.createElement('div');
+                        div.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer';
+                        div.innerHTML = `
+                            <div class="font-medium">${user.full_name}</div>
+                            <div class="text-sm text-gray-500">
+                                ${user.phone_number ? `Phone: ${user.phone_number}` : ''}
+                                ${user.id_card ? ` | ID: ${user.id_card}` : ''}
+                                ${user.counter_id ? ` | Meter: ${user.counter_id}` : ''}
+                            </div>
+                        `;
+                        div.addEventListener('click', () => {
+                            document.getElementById('user_search').value = user.full_name;
+                            document.getElementById('user_id').value = user.id;
+                            resultsDiv.classList.add('hidden');
+                        });
+                        resultsDiv.appendChild(div);
+                    });
+                    resultsDiv.classList.remove('hidden');
+                } else {
+                    resultsDiv.classList.add('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultsDiv.classList.add('hidden');
+            });
+    }, 300); // Wait 300ms after typing stops
+});
+
+// Close search results when clicking outside
+document.addEventListener('click', function(e) {
+    const searchResults = document.getElementById('search_results');
+    const userSearch = document.getElementById('user_search');
+    
+    if (!userSearch.contains(e.target) && !searchResults.contains(e.target)) {
+        searchResults.classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 

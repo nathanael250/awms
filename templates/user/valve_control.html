@@ -1,0 +1,118 @@
+{% extends "shared/base.html" %}
+
+{% block page_title %}Valve Control{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Valve Control</h2>
+            
+            <div class="mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">Current Status</h3>
+                        <p class="text-gray-600" id="valve-status">{{ valve_status|title }}</p>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">Remaining Balance</h3>
+                        <p class="text-gray-600" id="remaining-balance">{{ "%.2f"|format(remaining_balance) }} cubic meters</p>
+                </div>
+            </div>
+        </div>
+
+            <div class="flex space-x-4">
+                <form action="{{ url_for('valve_control') }}" method="post" class="flex-1" id="open-form">
+                    <input type="hidden" name="action" value="open">
+                    <button type="submit" 
+                            id="open-button"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            {% if valve_status == 'open' or not has_balance %}disabled{% endif %}>
+                        Open Valve
+                    </button>
+                </form>
+                
+                <form action="{{ url_for('valve_control') }}" method="post" class="flex-1" id="close-form">
+                    <input type="hidden" name="action" value="close">
+                    <button type="submit" 
+                            id="close-button"
+                            class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            {% if valve_status == 'closed' %}disabled{% endif %}>
+                        Close Valve
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const valveStatus = document.getElementById('valve-status');
+    const remainingBalance = document.getElementById('remaining-balance');
+    const openButton = document.getElementById('open-button');
+    const closeButton = document.getElementById('close-button');
+    const openForm = document.getElementById('open-form');
+    const closeForm = document.getElementById('close-form');
+    
+    // Function to update UI
+    function updateUI(data) {
+        valveStatus.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+        remainingBalance.textContent = `${data.remaining_balance.toFixed(2)} cubic meters`;
+        
+        if (data.status === 'open') {
+            openButton.disabled = true;
+            closeButton.disabled = false;
+        } else {
+            openButton.disabled = !data.has_balance;
+            closeButton.disabled = true;
+        }
+    }
+    
+    // Function to fetch current status
+    function fetchStatus() {
+        fetch('/api/valve-status/{{ current_user.id }}')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.error) {
+                    updateUI(data);
+                }
+            })
+            .catch(error => console.error('Error fetching status:', error));
+    }
+    
+    // Initial status fetch
+    fetchStatus();
+    
+    // Set up polling (every 2 seconds)
+    setInterval(fetchStatus, 2000);
+    
+    // Handle form submissions with AJAX
+    openForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetch('/user/valve-control', {
+            method: 'POST',
+            body: new FormData(openForm)
+        })
+        .then(response => response.text())
+        .then(() => {
+            fetchStatus(); // Update status immediately after action
+        })
+        .catch(error => console.error('Error opening valve:', error));
+    });
+    
+    closeForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        fetch('/user/valve-control', {
+            method: 'POST',
+            body: new FormData(closeForm)
+        })
+        .then(response => response.text())
+        .then(() => {
+            fetchStatus(); // Update status immediately after action
+        })
+        .catch(error => console.error('Error closing valve:', error));
+    });
+    });
+</script>
+{% endblock %}

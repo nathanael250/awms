@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<body>
+    <div class="session">
+        <div class="left">
+            <svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 101.76 122.88"><defs><style>.cls-1{fill:#42bdff;}.cls-1,.cls-2{fill-rule:evenodd;}.cls-2{fill:#fff;}</style></defs><title>water-color</title><path class="cls-1" d="M63.94,10.12C71.59,42.87,101.76,66.68,101.76,86c0,46.84-68.61,49.07-75.1,6.64a34.53,34.53,0,0,1-5.42-1.12A30.87,30.87,0,0,1,11,86.37C3.92,80.9.68,74.41.1,67.56-.58,59.62,2.39,51.32,7,43.6c1.76-2.94,3.37-5.49,5-8.11,6.34-10,13.49-21.24,16.28-33.31a2.81,2.81,0,0,1,5.47,0c2.81,12,9.95,23.27,16.28,33.25l1.82,2.87C57,29.7,61.58,20.37,63.94,10.12ZM26.19,86.9c0-.3,0-.59,0-.9,0-12.1,11.72-25.82,22.39-42.4-1-1.62-2.12-3.38-3.25-5.17-5.05-7.95-10.59-16.69-14.26-26.18C27.38,21.8,21.82,30.54,16.77,38.5c-1.87,2.93-3.66,5.75-5,8-4,6.79-6.66,14-6.09,20.64.46,5.34,3.05,10.44,8.76,14.84a25.48,25.48,0,0,0,8.36,4.19,27.42,27.42,0,0,0,3.37.77Z"/><path class="cls-2" d="M40.93,80.48a3.84,3.84,0,0,1,7.64-.69,36.87,36.87,0,0,0,3.72,13.84,24.46,24.46,0,0,0,9.54,9.86A3.83,3.83,0,0,1,58,110.1,31.86,31.86,0,0,1,45.5,97.2a44.59,44.59,0,0,1-4.57-16.72Z"/></svg>
+        </div>
+        <form action="" class="log-in" autocomplete="off" id="loginForm">
+            <h4>Water management system</span></h4>
+            <p>Welcome back! Log in to your account to view today's clients:</p>
+
+
+            <div class="floating-label">
+                <input placeholder="Email" type="email" name="email" id="email" autocomplete="off">
+                <label for="email">Email:</label>
+                <div class="icon">
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <svg enable-background="new 0 0 100 100" version="1.1" viewBox="0 0 100 100" xml:space="preserve"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <style type="text/css">
+                            .st0 {
+                                fill: none;
+                            }
+                        </style>
+                        <g transform="translate(0 -952.36)">
+                            <path
+                                d="m17.5 977c-1.3 0-2.4 1.1-2.4 2.4v45.9c0 1.3 1.1 2.4 2.4 2.4h64.9c1.3 0 2.4-1.1 2.4-2.4v-45.9c0-1.3-1.1-2.4-2.4-2.4h-64.9zm2.4 4.8h60.2v1.2l-30.1 22-30.1-22v-1.2zm0 7l28.7 21c0.8 0.6 2 0.6 2.8 0l28.7-21v34.1h-60.2v-34.1z" />
+                        </g>
+                        <rect class="st0" width="100" height="100" />
+                    </svg>
+
+                </div>
+            </div>
+            <div class="floating-label">
+                <input placeholder="Password" type="password" name="password" id="password" autocomplete="off">
+                <label for="password">Password:</label>
+                <div class="icon">
+
+                    <?xml version="1.0" encoding="UTF-8"?>
+                    <svg enable-background="new 0 0 24 24" version="1.1" viewBox="0 0 24 24" xml:space="preserve"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <style type="text/css">
+                            .st0 {
+                                fill: none;
+                            }
+                            .st1 {
+                                fill: #010101;
+                            }
+                        </style>
+                        <rect class="st0" width="24" height="24" />
+                        <path class="st1" d="M19,21H5V9h14V21z M6,20h12V10H6V20z" />
+                        <path class="st1"
+                            d="M16.5,10h-1V7c0-1.9-1.6-3.5-3.5-3.5S8.5,5.1,8.5,7v3h-1V7c0-2.5,2-4.5,4.5-4.5s4.5,2,4.5,4.5V10z" />
+                        <path class="st1"
+                            d="m12 16.5c-0.8 0-1.5-0.7-1.5-1.5s0.7-1.5 1.5-1.5 1.5 0.7 1.5 1.5-0.7 1.5-1.5 1.5zm0-2c-0.3 0-0.5 0.2-0.5 0.5s0.2 0.5 0.5 0.5 0.5-0.2 0.5-0.5-0.2-0.5-0.5-0.5z" />
+                    </svg>
+                </div>
+
+            </div>
+            <button type="submit">Log in</button>
+        </form>
+    </div>
+    <script>
+        let selectedRole = '';
+    
+        function selectRole(role) {
+            selectedRole = role;
+            // Visual feedback for selected role
+            document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+    
+        // Add this style to make the active state visible
+        const style = document.createElement('style');
+        style.textContent = `
+            .role-btn.active {
+                transform: scale(1.1);
+                box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            }
+        `;
+        document.head.appendChild(style);
+    
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+    
+            if (!selectedRole) {
+                alert('Please select a role first!');
+                return;
+            }
+    
+            if (!email || !password) {
+                alert('Please fill in all fields!');
+                return;
+            }
+    
+            // Redirect based on role
+            if (selectedRole === 'admin') {
+                window.location.href = '/admin';
+            } else {
+                window.location.href = '/user/dashboard';
+            }
+        });
+    </script>
+</body>    
+</body>
+</html>

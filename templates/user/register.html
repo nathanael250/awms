@@ -1,0 +1,81 @@
+{% extends "shared/base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- User Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-gray-500 text-sm mb-2">Today's Usage</h3>
+            <p class="text-3xl font-bold text-blue-600">245 L</p>
+            <p class="text-sm text-gray-500 mt-2">+12% from yesterday</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-gray-500 text-sm mb-2">Current Bill</h3>
+            <p class="text-3xl font-bold text-green-600">RWF 15,000</p>
+            <p class="text-sm text-gray-500 mt-2">Due in 15 days</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-gray-500 text-sm mb-2">Counter Status</h3>
+            <p class="text-3xl font-bold text-emerald-600">Active</p>
+            <p class="text-sm text-gray-500 mt-2">ID: WM-2023-001</p>
+        </div>
+    </div>
+
+    <!-- Usage Graph -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Water Usage History</h2>
+        <canvas id="usageChart" height="200"></canvas>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">Recent Activity</h2>
+        <div class="space-y-4">
+            <div class="flex justify-between items-center border-b pb-4">
+                <div>
+                    <p class="font-medium">Water Usage</p>
+                    <p class="text-sm text-gray-500">25L consumed</p>
+                </div>
+                <span class="text-sm text-gray-500">2 hours ago</span>
+            </div>
+            <div class="flex justify-between items-center border-b pb-4">
+                <div>
+                    <p class="font-medium">Payment Made</p>
+                    <p class="text-sm text-gray-500">RWF 10,000</p>
+                </div>
+                <span class="text-sm text-gray-500">Yesterday</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_scripts %}
+<script>
+    const ctx = document.getElementById('usageChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Daily Water Usage (L)',
+                data: [220, 245, 198, 237, 245, 215, 245],
+                borderColor: 'rgb(59, 130, 246)',
+                tension: 0.4,
+                fill: true,
+                backgroundColor: 'rgba(59, 130, 246, 0.1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

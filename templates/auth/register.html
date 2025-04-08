@@ -1,0 +1,152 @@
+{% extends "shared/auth_base.html" %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <h1 class="text-center text-4xl font-bold text-blue-600">WMS</h1>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Create Account</h2>
+            <p class="mt-2 text-center text-sm text-gray-600">Start managing your water usage today</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div
+            class="fixed top-4 right-4 z-50 p-4 rounded-lg {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form class="mt-8 space-y-6" method="POST" id="registrationForm" novalidate>
+            <div class="rounded-md shadow-sm space-y-4">
+                <div>
+                    <input type="text" name="full_name" id="full_name" required
+                        class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                        placeholder="Full Name">
+                    <p class="text-red-500 text-xs mt-1 hidden" id="full_name_error"></p>
+                </div>
+
+                <div>
+                    <input type="text" name="id_card" id="id_card" required
+                        class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                        placeholder="ID Card Number (16 digits)" maxlength="16">
+                    <p class="text-red-500 text-xs mt-1 hidden" id="id_card_error"></p>
+                </div>
+
+                <div>
+                    <input type="email" name="email" id="email" required
+                        class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                        placeholder="Email address">
+                    <p class="text-red-500 text-xs mt-1 hidden" id="email_error"></p>
+                </div>
+
+                <div>
+                    <input type="text" name="phone_number" id="phone_number" required
+                        class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                        placeholder="Phone Number (e.g., 078XXXXXXX)">
+                    <p class="text-red-500 text-xs mt-1 hidden" id="phone_number_error"></p>
+                </div>
+
+                <div>
+                    <input type="password" name="password" id="password" required
+                        class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                        placeholder="Password">
+                    <p class="text-red-500 text-xs mt-1 hidden" id="password_error"></p>
+                </div>
+            </div>
+
+            <div>
+                <button type="submit"
+                    class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Register
+                </button>
+            </div>
+
+            <div class="text-center">
+                <a href="{{ url_for('admin_login') }}" class="text-blue-600 hover:text-blue-800">Already have an
+                    account? Sign in</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('registrationForm');
+        const fullNameInput = document.getElementById('full_name');
+        const idCardInput = document.getElementById('id_card');
+        const emailInput = document.getElementById('email');
+        const phoneNumberInput = document.getElementById('phone_number');
+        const passwordInput = document.getElementById('password');
+        
+        // Error message elements
+        const fullNameError = document.getElementById('full_name_error');
+        const idCardError = document.getElementById('id_card_error');
+        const emailError = document.getElementById('email_error');
+        const phoneNumberError = document.getElementById('phone_number_error');
+        const passwordError = document.getElementById('password_error');
+        
+        // Only allow numbers in ID card field
+        idCardInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        // Only allow numbers in phone number field
+        phoneNumberInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+        
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // Reset error messages
+            [fullNameError, idCardError, emailError, phoneNumberError, passwordError].forEach(error => {
+                error.classList.add('hidden');
+            });
+            
+            // Validate full name
+            if (fullNameInput.value.trim().length < 2) {
+                fullNameError.textContent = 'Full name must be at least 2 characters';
+                fullNameError.classList.remove('hidden');
+                isValid = false;
+            }
+            
+            // Validate ID card
+            if (idCardInput.value.length !== 16) {
+                idCardError.textContent = 'ID card must be 16 digits';
+                idCardError.classList.remove('hidden');
+                isValid = false;
+            }
+            
+            // Validate email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(emailInput.value)) {
+                emailError.textContent = 'Please enter a valid email address';
+                emailError.classList.remove('hidden');
+                isValid = false;
+            }
+
+            // Validate phone number
+            if (phoneNumberInput.value.length !== 9) {
+                phoneNumberError.textContent = 'Phone number must be 9 digits';
+                phoneNumberError.classList.remove('hidden');
+                isValid = false;
+            }
+            
+            // Validate password
+            if (passwordInput.value.length < 8) {
+                passwordError.textContent = 'Password must be at least 8 characters';
+                passwordError.classList.remove('hidden');
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

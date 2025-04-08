@@ -1,0 +1,64 @@
+{% extends "shared/base.html" %}
+
+{% block page_title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">General Settings</h2>
+        <form>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">System Name</label>
+                <input type="text" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" value="Smart Water Management">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Currency</label>
+                <select class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    <option>RWF</option>
+                    <option>USD</option>
+                    <option>EUR</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Time Zone</label>
+                <select class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    <option>Africa/Kigali</option>
+                    <!-- Add more timezone options -->
+                </select>
+            </div>
+
+            <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Save Changes</button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">Notification Settings</h2>
+        <form>
+            <div class="mb-4">
+                <label class="flex items-center">
+                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                    <span class="ml-2 text-gray-700">Email Notifications</span>
+                </label>
+            </div>
+            
+            <div class="mb-4">
+                <label class="flex items-center">
+                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                    <span class="ml-2 text-gray-700">SMS Alerts</span>
+                </label>
+            </div>
+
+            <div class="mb-4">
+                <label class="flex items-center">
+                    <input type="checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                    <span class="ml-2 text-gray-700">System Alerts</span>
+                </label>
+            </div>
+
+            <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Update Preferences</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

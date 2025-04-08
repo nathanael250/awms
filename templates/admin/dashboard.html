@@ -1,0 +1,127 @@
+{% extends "shared/base.html" %}
+
+{% block page_title %}Water Management Dashboard{% endblock %}
+
+{% block content %}
+<!-- Quick Stats -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-gray-500 text-sm mb-2">Total Water Meters</h3>
+        <p class="text-3xl font-bold text-blue-600">{{ total_meters }}</p>
+        <p class="text-sm text-gray-500 mt-2">Active devices</p>
+    </div>
+   
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-gray-500 text-sm mb-2">Daily Consumption</h3>
+        <p class="text-3xl font-bold text-green-600">{{ daily_consumption|round(2) }} L</p>
+        <p class="text-sm text-gray-500 mt-2">Last 24 hours</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-gray-500 text-sm mb-2">Monthly Revenue</h3>
+        <p class="text-3xl font-bold text-purple-600">RWF {{ (monthly_revenue/1000000)|round(1) }}M</p>
+        <p class="text-sm text-gray-500 mt-2">{{ revenue_growth }}% this month</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-gray-500 text-sm mb-2">Alert Status</h3>
+        <p class="text-3xl font-bold text-yellow-600">{{ active_alerts|length }}</p>
+        <p class="text-sm text-gray-500 mt-2">Active alerts</p>
+    </div>
+</div>
+
+<!-- Recent Activities and Alerts -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Recent Activities</h2>
+            <a href="{{ url_for('admin_activities') }}" class="text-blue-600 hover:text-blue-800">View All</a>
+        </div>
+        <div class="space-y-4">
+            {% for activity in recent_activities %}
+            <div class="flex items-center justify-between border-b pb-4">
+                <div class="flex items-center">
+                    <div class="p-2 bg-{{ activity.type_color }}-100 rounded-full">
+                        {{ activity.icon|safe }}
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium">{{ activity.title }}</p>
+                        <p class="text-sm text-gray-500">{{ activity.details }}</p>
+                    </div>
+                </div>
+                <span class="text-sm text-gray-500">{{ activity.timestamp|timeago }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">System Alerts</h2>
+            <a href="{{ url_for('admin_alerts') }}" class="text-blue-600 hover:text-blue-800">View All</a>
+        </div>
+        <div class="space-y-4">
+            {% for alert in active_alerts %}
+            <div class="flex items-center justify-between border-b pb-4">
+                <div class="flex items-center">
+                    <div class="p-2 bg-{{ alert.severity_color }}-100 rounded-full">
+                        {{ alert.icon|safe }}
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium">{{ alert.title }}</p>
+                        <p class="text-sm text-gray-500">{{ alert.details }}</p>
+                    </div>
+                </div>
+                <span class="text-sm text-{{ alert.severity_color }}-500">{{ alert.severity }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const consumptionData = {{ consumption_trend|tojson }};
+    const revenueData = {{ revenue_analysis|tojson }};
+    
+    new Chart(document.getElementById('consumptionChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: consumptionData.map(item => item.date),
+            datasets: [{
+                label: 'Daily Water Consumption (L)',
+                data: consumptionData.map(item => item.usage),
+                borderColor: 'rgb(59, 130, 246)',
+                tension: 0.4,
+                fill: true,
+                backgroundColor: 'rgba(59, 130, 246, 0.1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('revenueChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: revenueData.map(item => item.month),
+            datasets: [{
+                label: 'Monthly Revenue (RWF)',
+                data: revenueData.map(item => item.revenue),
+                backgroundColor: 'rgba(139, 92, 246, 0.8)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' }
+            }
+        }
+    });
+</script>
+{% endblock %}

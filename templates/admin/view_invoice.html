@@ -1,0 +1,46 @@
+{% extends "shared/base.html" %}
+
+{% block page_title %}Invoice Details{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-semibold">Invoice #{{ payment.id }}</h2>
+        <div class="flex gap-4">
+            <button onclick="window.print()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                Print Invoice
+            </button>
+            <a href="{{ url_for('billing') }}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                Back to Billing
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-6 mb-6">
+        <div>
+            <h3 class="text-gray-500 text-sm mb-2">Customer Information</h3>
+            <p class="font-medium">{{ user.full_name }}</p>
+            <p class="text-gray-600">{{ user.email }}</p>
+            <p class="text-gray-600">Customer ID: {{ user.id }}</p>
+        </div>
+        <div>
+            <h3 class="text-gray-500 text-sm mb-2">Payment Details</h3>
+            <p class="font-medium">Amount: RWF {{ payment.amount|round(2) }}</p>
+            <p class="text-gray-600">Date: {{ payment.timestamp.strftime('%Y-%m-%d') }}</p>
+            <p class="text-gray-600">Status: 
+                <span class="px-2 py-1 text-xs font-semibold rounded-full
+                    {% if payment.status == 'success' %}bg-green-100 text-green-800
+                    {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                    {% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ payment.status|title }}
+                </span>
+            </p>
+        </div>
+    </div>
+
+    <div class="border-t pt-6">
+        <h3 class="text-gray-500 text-sm mb-2">Transaction Details</h3>
+        <p class="text-gray-600">Reference: {{ payment.transaction_ref }}</p>
+    </div>
+</div>
+{% endblock %}
