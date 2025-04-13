@@ -2085,48 +2085,28 @@ def bills():
 
 def send_low_balance_alerts():
     """Check all users and send low balance alerts to those who need them"""
-    threshold = 1000  # RWF
-
+    threshold = 0.01  # cubic meters (equivalent to 10 RWF at 1000 RWF per cubic meter)
+    
     # Find users who have Pushover keys configured
     users_with_notifications = User.query.filter(User.pushover_key.isnot(None)).all()
-
+    
     for user in users_with_notifications:
-        # Get the user's latest successful payment
-        latest_payment = (
-            Payment.query.filter_by(user_id=user.id, status="success")
-            .order_by(Payment.timestamp.desc())
-            .first()
-        )
-
-        if latest_payment:
-            # Calculate remaining water based on payment amount
-            remaining_water = (
-                latest_payment.amount / 1000
-            )  # Assuming 1000 RWF per cubic meter
-
-            # Get total water usage since payment
-            usage_since_payment = (
-                WaterUsage.query.filter(
-                    WaterUsage.counter_id == user.counter_id,
-                    WaterUsage.timestamp > latest_payment.timestamp,
-                )
-                .with_entities(func.sum(WaterUsage.usage_amount))
-                .scalar()
-                or 0
+        # Get the user's water balance directly from the UserWaterBalance table
+        water_balance = UserWaterBalance.query.filter_by(user_id=user.id).first()
+        
+        if water_balance and water_balance.cubic_meters < threshold:
+            # Convert cubic meters to RWF for the message (1000 RWF per cubic meter)
+            balance_rwf = water_balance.cubic_meters * 1000
+            
+            send_pushover_notification(
+                user.pushover_key,
+                "Low Balance Alert",
+                f"Hello {user.full_name}, your water balance is running low ({water_balance.cubic_meters:.3f} m³ / RWF {balance_rwf:.2f}). Please top up soon to avoid service interruption.",
             )
-
-            # Calculate remaining balance
-            remaining_balance = (remaining_water - usage_since_payment) * 1000
-
-            if remaining_balance < threshold:
-                send_pushover_notification(
-                    user.pushover_key,
-                    "Low Balance Alert",
-                    f"Hello {user.full_name}, your water balance is running low (RWF {remaining_balance:,.2f}). Please top up soon to avoid service interruption.",
-                )
-                logger.info(
-                    f"Low balance alert sent to user {user.id} ({user.full_name})"
-                )
+            
+            logger.info(
+                f"Low balance alert sent to user {user.id} ({user.full_name}) - Balance: {water_balance.cubic_meters:.3f} m³"
+            )
 
 
 
