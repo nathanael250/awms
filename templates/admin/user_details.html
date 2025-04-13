@@ -1,7 +1,5 @@
 {% extends "shared/base.html" %}
-
 {% block page_title %}User Details - {{ user.full_name }}{% endblock %}
-
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Back Button -->
@@ -31,7 +29,6 @@
             <div class="flex justify-between items-start mb-6">
                 <h2 class="text-2xl font-bold text-gray-900">{{ user.full_name }}</h2>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Basic Information -->
                 <div>
@@ -55,7 +52,6 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- Water Account Information -->
                 <div>
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Water Account</h3>
@@ -65,8 +61,18 @@
                             <p class="mt-1 text-sm text-gray-900">{{ user.counter_id or 'Not assigned' }}</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-500">Balance</label>
-                            <p class="mt-1 text-sm text-gray-900">RWF {{ user.balance|format_number }}</p>
+                            <label class="block text-sm font-medium text-gray-500">Account Balance</label>
+                            {% set account = user.account[0] if user.account else None %}
+                            <p class="mt-1 text-sm {% if account and account.balance > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                RWF {{ account.balance|format_number if account else '0.00' }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500">Water Balance</label>
+                            {% set water_balance = user.water_balances[0] if user.water_balances else None %}
+                            <p class="mt-1 text-sm {% if water_balance and water_balance.cubic_meters > 0 %}text-blue-600{% else %}text-red-600{% endif %}">
+                                {{ water_balance.cubic_meters|format_number if water_balance else '0.00' }} m³
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -94,27 +100,35 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        {% for usage in water_usage %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ usage.timestamp.strftime('%Y-%m-%d %H:%M') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ usage.usage_amount }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if usage.acknowledged %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                    Acknowledged
-                                </span>
-                                {% else %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                    Pending
-                                </span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
+                        {% if water_usage %}
+                            {% for usage in water_usage %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ usage.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ usage.usage_amount|format_number }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if usage.acknowledged %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Acknowledged
+                                    </span>
+                                    {% else %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        Pending
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">
+                                    No water usage records found
+                                </td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
@@ -144,27 +158,35 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        {% for payment in payments %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ payment.timestamp.strftime('%Y-%m-%d %H:%M') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                RWF {{ payment.amount|format_number }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ payment.transaction_type|title }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    {% if payment.status == 'completed' %}bg-green-100 text-green-800
-                                    {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                    {% else %}bg-red-100 text-red-800{% endif %}">
-                                    {{ payment.status|title }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
+                        {% if payments %}
+                            {% for payment in payments %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ payment.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    RWF {{ payment.amount|format_number }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ payment.transaction_type|title if payment.transaction_type else 'Payment' }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                        {% if payment.status == 'success' %}bg-green-100 text-green-800
+                                        {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ payment.status|title }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                    No payment records found
+                                </td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
@@ -194,38 +216,46 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        {% for loan in loans %}
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ loan.borrowed_at.strftime('%Y-%m-%d %H:%M') }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ loan.amount }} m³
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if loan.status == 'active' %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                    Active
-                                </span>
-                                {% else %}
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                    Repaid
-                                </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {% if loan.repaid_at %}
-                                {{ loan.repaid_at.strftime('%Y-%m-%d %H:%M') }}
-                                {% else %}
-                                -
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
+                        {% if loans %}
+                            {% for loan in loans %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ loan.borrowed_at.strftime('%Y-%m-%d %H:%M') }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ loan.amount|format_number }} m³
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if loan.status == 'active' %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        Active
+                                    </span>
+                                    {% else %}
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                        Repaid
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {% if loan.repaid_at %}
+                                    {{ loan.repaid_at.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                    No loan records found
+                                </td>
+                            </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

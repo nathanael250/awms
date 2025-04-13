@@ -2045,17 +2045,34 @@ def change_password():
 @app.route("/user/bills")
 @login_required
 def bills():
-    # Get user's bills with pagination
-    bills = (
-        Payment.query.filter_by(user_id=current_user.id)
-        .order_by(Payment.timestamp.desc())
-        .all()
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # Number of bills per page
+    
+    # Get user's bills with pagination - ONLY PAYMENTS, NOT RECHARGES
+    bills_query = Payment.query.filter_by(
+        user_id=current_user.id, 
+        transaction_type="payment"
+    ).order_by(Payment.timestamp.desc())
+    
+    bills = bills_query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    # Calculate summary statistics - only for payments
+    payment_query = Payment.query.filter_by(
+        user_id=current_user.id, 
+        transaction_type="payment"
     )
-
-    # Calculate summary statistics
-    total_paid = sum(bill.amount for bill in bills if bill.status == "success")
-    pending_amount = sum(bill.amount for bill in bills if bill.status == "pending")
-    average_monthly = total_paid / 12 if total_paid > 0 else 0
+    
+    total_paid = payment_query.filter_by(status="success").with_entities(func.sum(Payment.amount)).scalar() or 0
+    pending_amount = payment_query.filter_by(status="pending").with_entities(func.sum(Payment.amount)).scalar() or 0
+    
+    # Calculate average monthly (more efficiently)
+    first_payment = payment_query.filter_by(status="success").order_by(Payment.timestamp).first()
+    if first_payment:
+        months_since_first = max(1, (datetime.now() - first_payment.timestamp).days / 30)
+        average_monthly = total_paid / months_since_first
+    else:
+        average_monthly = 0
 
     return render_template(
         "user/bills.html",
