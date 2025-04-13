@@ -6,7 +6,7 @@
     <!-- Add Counter Form -->
     <div class="bg-white p-6 rounded-lg shadow-md mb-8">
         <h3 class="text-xl font-semibold mb-4">Add New Counter</h3>
-        <form method="POST" class="flex gap-4">
+        <form action="{{ url_for('add_counter') }}" method="POST" class="flex gap-4">
             <input type="text" name="counter_id" class="flex-1 border rounded-lg p-2" placeholder="Enter Counter ID"
                 required>
             <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
@@ -15,8 +15,54 @@
         </form>
     </div>
 
+    <!-- Assign Counter Form -->
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+        <h3 class="text-xl font-semibold mb-4">Assign Counter to User</h3>
+        <form action="{{ url_for('assign_counter') }}" method="POST" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="counter_id" class="block text-sm font-medium text-gray-700 mb-1">Counter ID</label>
+                    <select name="counter_id" id="counter_id" class="w-full border rounded-lg p-2" required>
+                        <option value="">Select Counter</option>
+                        {% for counter in counters %}
+                            {% if counter.status == 'available' %}
+                                <option value="{{ counter.counter_id }}">{{ counter.counter_id }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="user_id" class="block text-sm font-medium text-gray-700 mb-1">User</label>
+                    <select name="user_id" id="user_id" class="w-full border rounded-lg p-2" required>
+                        <option value="">Select User</option>
+                        <!-- We'll populate this with AJAX -->
+                    </select>
+                </div>
+            </div>
+            <div>
+                <input type="text" id="user_search" class="w-full border rounded-lg p-2 mb-2" 
+                    placeholder="Search users by name, ID card, or phone number">
+                <div id="search_results" class="bg-white border rounded-lg p-2 hidden"></div>
+            </div>
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                Assign Counter
+            </button>
+        </form>
+    </div>
+
     <!-- Counters List -->
-    <div class="bg-white rounded-lg shadow-md">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
+            <h3 class="text-lg font-semibold">All Counters</h3>
+            <div class="flex items-center">
+                <input type="text" id="counter_search" class="border rounded-lg p-2 mr-2" placeholder="Search counters">
+                <select id="status_filter" class="border rounded-lg p-2">
+                    <option value="all">All Statuses</option>
+                    <option value="available">Available</option>
+                    <option value="assigned">Assigned</option>
+                </select>
+            </div>
+        </div>
         <table class="w-full">
             <thead class="bg-gray-50">
                 <tr>
@@ -24,28 +70,166 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assigned To</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created At</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
                 {% for counter in counters %}
-                <tr>
+                <tr class="counter-row" data-status="{{ counter.status }}">
                     <td class="px-6 py-4">{{ counter.counter_id }}</td>
                     <td class="px-6 py-4">
                         <span class="px-2 py-1 rounded-full text-sm 
                             {% if counter.status == 'available' %}
                                 bg-green-100 text-green-800
-                            {% else %}
+                            {% elif counter.status == 'assigned' %}
                                 bg-blue-100 text-blue-800
+                            {% else %}
+                                bg-gray-100 text-gray-800
                             {% endif %}">
                             {{ counter.status }}
                         </span>
                     </td>
-                    <td class="px-6 py-4">{{ counter.assigned_to or 'Not assigned' }}</td>
+                    <td class="px-6 py-4">
+                        {% if counter.assigned_user %}
+                            <a href="{{ url_for('user_details', user_id=counter.assigned_user.id) }}" class="text-blue-600 hover:underline">
+                                {{ counter.assigned_user.full_name }}
+                            </a>
+                        {% else %}
+                            <span class="text-gray-500">Not assigned</span>
+                        {% endif %}
+                    </td>
                     <td class="px-6 py-4">{{ counter.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex space-x-2">
+                            {% if counter.status == 'available' %}
+                                <button class="text-red-600 hover:text-red-800 delete-counter" data-counter-id="{{ counter.counter_id }}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // User search functionality
+    const userSearchInput = document.getElementById('user_search');
+    const searchResults = document.getElementById('search_results');
+    const userIdSelect = document.getElementById('user_id');
+    
+    userSearchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        if (query.length < 2) {
+            searchResults.classList.add('hidden');
+            return;
+        }
+        
+        fetch(`/api/search-users?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                searchResults.innerHTML = '';
+                if (data.length === 0) {
+                    searchResults.innerHTML = '<div class="p-2 text-gray-500">No users found</div>';
+                } else {
+                    data.forEach(user => {
+                        const userDiv = document.createElement('div');
+                        userDiv.className = 'p-2 hover:bg-gray-100 cursor-pointer';
+                        userDiv.innerHTML = `
+                            <div class="font-medium">${user.full_name}</div>
+                            <div class="text-sm text-gray-500">ID: ${user.id_card} | Phone: ${user.phone_number}</div>
+                        `;
+                        userDiv.addEventListener('click', function() {
+                            // Add option to select if not exists
+                            let option = userIdSelect.querySelector(`option[value="${user.id}"]`);
+                            if (!option) {
+                                option = document.createElement('option');
+                                option.value = user.id;
+                                option.textContent = user.full_name;
+                                userIdSelect.appendChild(option);
+                            }
+                            
+                            // Select the user
+                            userIdSelect.value = user.id;
+                            userSearchInput.value = user.full_name;
+                            searchResults.classList.add('hidden');
+                        });
+                        searchResults.appendChild(userDiv);
+                    });
+                }
+                searchResults.classList.remove('hidden');
+            })
+            .catch(error => {
+                console.error('Error searching users:', error);
+                searchResults.innerHTML = '<div class="p-2 text-red-500">Error searching users</div>';
+                searchResults.classList.remove('hidden');
+            });
+    });
+    
+    // Hide search results when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!userSearchInput.contains(event.target) && !searchResults.contains(event.target)) {
+            searchResults.classList.add('hidden');
+        }
+    });
+    
+    // Counter search and filter
+    const counterSearch = document.getElementById('counter_search');
+    const statusFilter = document.getElementById('status_filter');
+    const counterRows = document.querySelectorAll('.counter-row');
+    
+    function filterCounters() {
+        const searchTerm = counterSearch.value.toLowerCase();
+        const statusValue = statusFilter.value;
+        
+        counterRows.forEach(row => {
+            const counterId = row.querySelector('td:first-child').textContent.toLowerCase();
+            const status = row.dataset.status;
+            
+            const matchesSearch = counterId.includes(searchTerm);
+            const matchesStatus = statusValue === 'all' || status === statusValue;
+            
+            row.style.display = matchesSearch && matchesStatus ? '' : 'none';
+        });
+    }
+    
+    counterSearch.addEventListener('input', filterCounters);
+    statusFilter.addEventListener('change', filterCounters);
+    
+    // Delete counter functionality
+    const deleteButtons = document.querySelectorAll('.delete-counter');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const counterId = this.dataset.counterId;
+            if (confirm(`Are you sure you want to delete counter ${counterId}?`)) {
+                fetch(`/admin/counters/${counterId}/delete`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the row from the table
+                        this.closest('tr').remove();
+                    } else {
+                        alert(`Error: ${data.error}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting counter:', error);
+                    alert('An error occurred while deleting the counter');
+                });
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
